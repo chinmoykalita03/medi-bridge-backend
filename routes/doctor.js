@@ -1,6 +1,7 @@
 import express from "express";
 import jwt from "jsonwebtoken";
 import Doctor from "../models/doctorModel.js";
+import bcrypt from "bcryptjs";
 import Appointment from "../models/Appointment.js";
 import { protect } from "../middleware/authMiddleware.js";
 import {
@@ -33,49 +34,100 @@ const verifyDoctorToken = (req, res, next) => {
 // 🩺 Doctor Signup
 router.post("/signup", async (req, res) => {
   try {
-    const { name, specialization } = req.body;
+    const { name, email, password, specialization } = req.body;
 
-    if (!name || !specialization) {
+    // 1️⃣ Validate input
+    if (!name || !email || !password || !specialization) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const doctor = new Doctor({ name, specialization });
-    await doctor.save();
+    // 2️⃣ Check if doctor already exists
+    const existingDoctor = await Doctor.findOne({ email });
+    if (existingDoctor) {
+      return res.status(400).json({ message: "Email already in use" });
+    }
 
-    const token = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    // 3️⃣ Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
+    // 4️⃣ Create new doctor
+    const doctor = await Doctor.create({
+      name,
+      email,
+      password: hashedPassword,
+      specialization,
+    });
+
+    // 5️⃣ Generate JWT token
+    const token = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    // 6️⃣ Respond with success
     res.status(201).json({
-      message: "Doctor registered successfully",
-      doctor,
+      message: "Sign up successful",
+      doctor: {
+        id: doctor._id,
+        name: doctor.name,
+        email: doctor.email,
+        specialization: doctor.specialization,
+      },
       token,
     });
   } catch (error) {
-    console.error("Signup error:", error);
+    console.error("Doctor signup error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
 
 // 🩺 Doctor Login (basic by name)
 router.post("/login", async (req, res) => {
   try {
-    const { name } = req.body;
-    const doctor = await Doctor.findOne({ name });
+    const { email, password } = req.body;
 
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+    // ✅ Validate input
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
 
-    const token = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    // ✅ Find doctor by email
+    const doctor = await Doctor.findOne({ email });
+    if (!doctor) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
 
+    // ✅ Compare password
+    const isMatch = await bcrypt.compare(password, doctor.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    // ✅ Generate JWT token
+    const token = jwt.sign(
+      { id: doctor._id, role: "doctor" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    // ✅ Respond with token and doctor info
     res.status(200).json({
-      message: "Login successful",
-      doctor,
+      message: "Signed in successfully",
       token,
+      doctor: {
+        id: doctor._id,
+        name: doctor.name,
+        email: doctor.email,
+        specialization: doctor.specialization,
+        createdAt: doctor.createdAt,
+        updatedAt: doctor.updatedAt,
+      },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("Doctor login error:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
 // 📅 Set Availability
 router.post("/set-availability", verifyDoctorToken, setAvailability);
 
