@@ -137,7 +137,7 @@ export const confirmAppointment = async (req, res) => {
       doctorId: doctorId,
       date,
       slot,
-      status: "confirmed",
+      status: "pending",
     });
 
     // remove booked slot from doctor
