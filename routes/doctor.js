@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import Doctor from "../models/doctorModel.js";
 import bcrypt from "bcryptjs";
 import Appointment from "../models/Appointment.js";
+import { markAppointmentCompleted } from "../controllers/doctorController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import {
   setAvailability,
@@ -142,5 +143,7 @@ router.get("/getDoctorsBySpecialization", protect, getDoctorsBySpecialization);
 
 // ⏰ Get doctor’s available slots
 router.get("/getDoctorSlots/:doctorId", protect, getDoctorSlots);
+
+router.put("/appointments/:appointmentId/complete", protect, markAppointmentCompleted);
 
 export default router;

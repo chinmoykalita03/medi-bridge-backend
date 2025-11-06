@@ -94,3 +94,38 @@ export const getDoctorSlots = async (req, res) => {
     res.status(500).json({ message: "Error fetching slots", error: error.message });
   }
 };
+
+export const markAppointmentCompleted = async (req, res) => {
+  try {
+    const doctorId = req.user.id; // doctor is logged in
+    const { appointmentId } = req.params;
+
+    // Find the appointment that belongs to this doctor
+    const appointment = await Appointment.findOne({
+      _id: appointmentId,
+      doctorId,
+    });
+
+    if (!appointment)
+      return res.status(404).json({ message: "Appointment not found or unauthorized" });
+
+    // Check if it's already completed
+    if (appointment.status === "completed") {
+      return res.status(400).json({ message: "Appointment already marked as completed" });
+    }
+
+    // Update status
+    appointment.status = "completed";
+    await appointment.save();
+
+    res.status(200).json({
+      message: "Appointment marked as completed successfully",
+      appointment,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error marking appointment as completed",
+      error: error.message,
+    });
+  }
+};

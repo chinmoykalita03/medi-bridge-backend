@@ -40,7 +40,7 @@ export const signIn = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: user._id, role: "user" }, process.env.JWT_SECRET, { expiresIn: "7d" });
 
     res.json({ message: "Login successful", token, user });
   } catch (error) {
@@ -120,7 +120,7 @@ export const bookAppointment = async (req, res) => {
       doctorId,
       date,
       slot,
-      status: "confirmed",
+      status: "pending",
     });
 
     // remove booked slot
@@ -139,7 +139,8 @@ export const getAppointments = async (req, res) => {
     const userId = req.user.id;
     const appointments = await Appointment.find({ userId })
       .populate("doctorId", "name specialization")
-      .sort({ date: 1 });
+      .sort({ date: -1 })
+      .limit(3);
     res.status(200).json({ appointments });
   } catch (error) {
     res.status(500).json({ message: "Error fetching appointments", error: error.message });

@@ -137,7 +137,7 @@ export const confirmAppointment = async (req, res) => {
       doctorId: doctorId,
       date,
       slot,
-      status: "pending",
+      status: "confirmed",
     });
 
     // remove booked slot from doctor
@@ -203,3 +203,4 @@ export const getAppointments = async (req, res) => {
     res.status(500).json({ message: "Error fetching appointments", error: error.message });
   }
 };
+

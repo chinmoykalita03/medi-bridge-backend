@@ -5,7 +5,7 @@ const appointmentSchema = new mongoose.Schema({
   doctorId: { type: mongoose.Schema.Types.ObjectId, ref: "Doctor", required: true },
   date: { type: String, required: true },
   slot: { type: String, required: true },
-  status: { type: String, default: "confirmed" },
+  status: { type: String, default: "pending" },
 });
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
